@@ -16,6 +16,8 @@
 pip install poetry
 # 의존성 패키지 설치
 poetry install
+# poetry dotenv 플러그인 설치
+poetry self add poetry-dotenv-plugin
 # OPENAI_API_KEY 환경변수 설정
 poetry run dotenv set OPENAI_API_KEY {OPENAI_API_KEY}
 # DEEPL_API_KEY
