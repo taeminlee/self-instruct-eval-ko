@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "self-instruct-eval-ko"
+version = "0.1.0"
+description = ""
+authors = ["Taemin Lee <persuade@gmail.com>"]
+readme = "README.md"
+packages = [{include = "self_instruct_eval_ko"}]
+
+[tool.poetry.dependencies]
+python = ">=3.8.1,<4.0"
+langchain = "^0.0.137"
+openai = "^0.27.4"
+python-dotenv = {extras = ["cli"], version = "^1.0.0"}
+tqdm = "^4.65.0"
+fire = "^0.5.0"
+deepl = "^1.14.0"
+google-search-results = "^2.4.2"
+jsonlines = "^3.1.0"
+termcolor = "^2.2.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
