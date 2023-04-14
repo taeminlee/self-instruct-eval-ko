@@ -1,4 +1,4 @@
-from translate import DeepL, ChatGPT # 번역 모델을 사용하기 위한 라이브러리
+from translate import DeepL, ChatGPT, GPT4 # 번역 모델을 사용하기 위한 라이브러리
 
 # instruction 및 instances 안에 있는 내용들을 번역하는 함수 
 def translate_func(obj, translate):
@@ -15,4 +15,9 @@ DeepL().translate(in_filepath='user_oriented_instructions.jsonl',
 # ChatGPT 번역을 사용하여 user_oriented_instructions.jsonl 파일의 내용을 한국어로 번역한 후, user_oriented_instructions_chatgpt_ko.jsonl 파일에 저장
 ChatGPT().translate(in_filepath='user_oriented_instructions.jsonl',
                     out_filepath='user_oriented_instructions_chatgpt_ko.jsonl',
+                    translate_func=translate_func)
+
+# GPT4 번역을 사용하여 user_oriented_instructions.jsonl 파일의 내용을 한국어로 번역한 후, user_oriented_instructions_gpt4_ko.jsonl 파일에 저장
+GPT4().translate(in_filepath='user_oriented_instructions.jsonl',
+                    out_filepath='user_oriented_instructions_gpt4_ko.jsonl',
                     translate_func=translate_func)
