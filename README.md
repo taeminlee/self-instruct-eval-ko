@@ -2,6 +2,10 @@
 
 [Self-Instruct](https://github.com/yizhongw/self-instruct)의 eval dataset을 한국어 모델에서 사용 가능하도록 번역한 데이터 모음입니다.
 
+### Update logs
+
+- 2023.04.14: 비동기로 처리하여 조금 더 시간을 아낄 수 있습니다!
+
 ### Requires
 
 - openai api
@@ -26,6 +30,8 @@ poetry run dotenv set DEEPL_API_KEY {DEEPL_API_KEY}
 
 ### Dataset preparation
 
+- dataset 전체를 번역하여 저장합니다.
+
 - run
 
 `poetry run python dataset_prepare.py`
@@ -36,13 +42,18 @@ poetry run dotenv set DEEPL_API_KEY {DEEPL_API_KEY}
 (base) persuade@nlp-server-10:/mnt/md0/persuade/self-instruct-eval-ko$ poetry run python dataset_prepare.py 
 in_filepath: user_oriented_instructions.jsonl
 out_filepath: user_oriented_instructions_deepl_ko.jsonl
-252it [03:27,  1.21it/s]
+100%|████████████| 252/252 [00:07<00:00, 32.58it/s]
 in_filepath: user_oriented_instructions.jsonl
 out_filepath: user_oriented_instructions_chatgpt_ko.jsonl
-252it [27:44,  6.61s/it]
+100%|████████████| 252/252 [00:43<00:00,  5.81it/s]
+in_filepath: user_oriented_instructions.jsonl
+out_filepath: user_oriented_instructions_gpt4_ko.jsonl
+100%|100%|████████████| 252/252 [02:40<00:00,  1.57it/s]
 ```
 
 ### Translate
+
+- unit function 테스트 용도입니다.
 
 - run example
 
