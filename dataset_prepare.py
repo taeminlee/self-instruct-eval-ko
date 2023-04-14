@@ -1,5 +1,7 @@
 import asyncio
-from translate import DeepL, ChatGPT, GPT4 # 번역 모델을 사용하기 위한 라이브러리
+from deepl_ import DeepL
+from chatgpt import ChatGPT
+from gpt4 import GPT4 # 번역 모델을 사용하기 위한 라이브러리
 
 # instruction 및 instances 안에 있는 내용들을 번역하는 함수 
 async def translate_func(translate, obj):
