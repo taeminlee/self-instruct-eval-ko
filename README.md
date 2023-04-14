@@ -6,6 +6,12 @@
 
 - 2023.04.14: 비동기로 처리하여 조금 더 시간을 아낄 수 있습니다!
 
+## datasets
+
+- `user_oriented_instructions_deepl_ko.jsonl` : deepl로 번역한 평가 데이터 집합
+- `user_oriented_instructions_chatgpt_ko.jsonl` : GPT-3.5-turbo로 번역한 평가 데이터 집합
+- `user_oriented_instructions_gpt4_ko.jsonl` : GPT-4로 번역한 평가 데이터 집합
+
 ### Requires
 
 - openai api
