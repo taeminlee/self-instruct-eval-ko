@@ -25,7 +25,7 @@ class ChatGPT(Translate):
         chat_prompt = ChatPromptTemplate.from_messages(
             [system_message_prompt, human_message_prompt])
 
-        # LLMChain 객체를 생성하여 prompt에 chat_prompt를 할당합니다.
+        # LLMChain 객체를 생성
         self.translate_chain = LLMChain(llm=chat, prompt=chat_prompt)
 
     async def __call__(self, original_text: str, target_lang: str = 'Korean') -> str:
@@ -40,10 +40,10 @@ class ChatGPT(Translate):
           str: 입력된 original_text가 target_lang으로 번역된 결과
         """
         # original_text가 빈 문자열인 경우 바로 반환합니다.
-        if not original_text:
+        if not original_text or original_text.strip() == "":
             return original_text
 
-        # translate_chain 객체의 run 메소드를 사용하여 번역을 진행한 후, 반환합니다.
+        # translate_chain 객체의 arun 비동기 메소드를 사용하여 번역을 진행한 후, 반환합니다.
         return await self.translate_chain.arun({'text': '', 'original_text': original_text, 'target_lang': target_lang})
 
 

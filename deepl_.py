@@ -42,7 +42,7 @@ class TargetLang(Enum):
 # deepl 번역
 class DeepL(Translate):
     def __init__(self):
-        # DeepL API Key를 가져와 Translator 객체를 생성합니다.
+        # DeepL API Key를 가져와 비동기 Translator 객체를 생성합니다.
         self.translator = deepl.Translator(deepl.AiohttpAdapter(os.getenv("DEEPL_API_KEY")))
 
     async def __call__(self, original_text: str, target_lang: str = 'KO') -> str:
@@ -57,7 +57,7 @@ class DeepL(Translate):
           str: 번역된 텍스트
         """
         # original_text가 빈 문자열인 경우 바로 반환합니다.
-        if not original_text:
+        if not original_text or original_text.strip() == "":
             return original_text
 
         # DeepL 라이브러리의 translate_text 메소드를 사용하여 번역한 후, 결과를 반환합니다.
