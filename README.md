@@ -12,6 +12,8 @@
 - `user_oriented_instructions_chatgpt_ko.jsonl` : GPT-3.5-turbo로 번역한 평가 데이터 집합
 - `user_oriented_instructions_gpt4_ko.jsonl` : GPT-4로 번역한 평가 데이터 집합
 
+## 직접 만들기
+
 ### Requires
 
 - openai api
