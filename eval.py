@@ -20,17 +20,19 @@ class Evaluate(ABC):
         pass
     
 
-    def get_answer(self, obj: dict) -> dict:
+    def run(self, obj: dict) -> dict:
         if 'instances' in obj.keys():
-            # only use first instance
-            obj['input'] = obj['instances'][0]['input']
-        return asyncio.run(self.__call__(obj['instruction'], obj['input']))
+            for idx, instance in enumerate(obj['instances']):
+                obj['instances'][idx]['output'] = asyncio.run(self.__call__(obj['instruction'], instance['input']))
+        else:
+            return asyncio.run(self.__call__(obj['instruction'], obj['input']))
 
     async def arun(self, obj: dict) -> dict:
         if 'instances' in obj.keys():
-            # only use first instance
-            obj['input'] = obj['instances'][0]['input']
-        obj['answer'] = await self.__call__(obj['instruction'], obj['input'])
+            for idx, instance in enumerate(obj['instances']):
+                obj['instances'][idx]['output'] = await self.__call__(obj['instruction'], instance['input'])
+        else:
+            obj['answer'] = await self.__call__(obj['instruction'], obj['input'])
         return obj
     
     async def aeval_jsonl(self, in_filepath: str, out_filepath: str, max_concurrency=10, verbose=True, dev=False, increment=True):
@@ -85,7 +87,8 @@ if __name__ == '__main__':
     # ChatGPT API를 사용하여 'user_oriented_instructions_deepl_ko.jsonl' 파일에 답변하고, 'user_oriented_instructions_deepl_ko_eval_chatgpt.jsonl' 파일에 저장합니다.
     # dev 모드를 활성화하여 디버그 정보도 출력합니다.
     asyncio.run(ChatGPTEval().aeval_jsonl(in_filepath='user_oriented_instructions_deepl_ko.jsonl',
-                        out_filepath='user_oriented_instructions_deepl_ko_eval_chatgpt.jsonl',
+                        out_filepath='user_oriented_instructions_deepl_ko_eval_chatgpt_dev.jsonl',
                         max_concurrency=100,
-                        dev=True))
+                        dev=True,
+                        increment=False))
 

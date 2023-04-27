@@ -52,15 +52,25 @@ class ChatGPT(Translate):
 class ChatGPTEval(Evaluate):
     def __init__(self, model_name='gpt-3.5-turbo'):
         chat = ChatOpenAI(model_name=model_name, request_timeout=600)
-        system_messsage_prompt = SystemMessagePromptTemplate.from_template("You are a helpful assistant.")
-        human_message_prompt = HumanMessagePromptTemplate.from_template("##Instruction:\n\n{instruction}\n\n##Input:\n\n{input}\n\n##Output:\n\n")
-        chat_prompt = ChatPromptTemplate.from_messages(
-            [system_messsage_prompt, human_message_prompt]
+        system_messsage_prompt = SystemMessagePromptTemplate.from_template("당신은 유용한 어시시턴트입니다.")
+        
+        input_human_message_prompt = HumanMessagePromptTemplate.from_template("##Instruction:\n\n{instruction}\n\n##Input:\n\n{input}\n\n##Output:\n\n")
+        input_chat_prompt = ChatPromptTemplate.from_messages(
+            [system_messsage_prompt, input_human_message_prompt]
         )
-        self.chain = LLMChain(llm=chat, prompt=chat_prompt)
+        self.input_chain = LLMChain(llm=chat, prompt=input_chat_prompt)
+
+        instruct_human_message_prompt = HumanMessagePromptTemplate.from_template("##Instruction:\n\n{instruction}\n\n##Output:\n\n")
+        instruct_chat_prompt = ChatPromptTemplate.from_messages(
+            [system_messsage_prompt, instruct_human_message_prompt]
+        )
+        self.instruct_chain = LLMChain(llm=chat, prompt=instruct_chat_prompt)
     
     async def __call__(self, instruction: str, input: str) -> str:
-        return await self.chain.arun({'text': '', 'instruction': instruction, 'input': input})
+        if input.strip() == '':
+            return await self.instruct_chain.arun({'text': '', 'instruction': instruction})
+        else:
+            return await self.input_chain.arun({'text': '', 'instruction': instruction, 'input': input})
 
 
 if __name__ == '__main__':
@@ -69,7 +79,7 @@ if __name__ == '__main__':
     with jsonlines.open('user_oriented_instructions_deepl_ko.jsonl') as reader:
         for obj in reader:
             print(obj)
-            print(f'ChatGPT: {ChatGPTEval().get_answer(obj)}')
+            print(f'ChatGPT: {ChatGPTEval().run(obj)}')
             break
     print("TRANSLATE")
     text = 'hello world!'

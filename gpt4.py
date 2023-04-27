@@ -8,6 +8,7 @@ from langchain.prompts.chat import (
 )
 # framework
 from translate import Translate
+from eval import Evaluate
 
 
 # gpt4 번역
@@ -45,6 +46,31 @@ class GPT4(Translate):
 
         # translate_chain 객체의 arun 비동기 메소드를 사용하여 번역을 진행한 후, 반환합니다.
         return await self.translate_chain.arun({'text': '', 'original_text': original_text, 'target_lang': target_lang})
+
+
+# chatgpt inference
+class GPT4Eval(Evaluate):
+    def __init__(self, model_name='gpt-4'):
+        chat = ChatOpenAI(model_name=model_name, request_timeout=600)
+        system_messsage_prompt = SystemMessagePromptTemplate.from_template("당신은 유용한 어시시턴트입니다.")
+        
+        input_human_message_prompt = HumanMessagePromptTemplate.from_template("##Instruction:\n\n{instruction}\n\n##Input:\n\n{input}\n\n##Output:\n\n")
+        input_chat_prompt = ChatPromptTemplate.from_messages(
+            [system_messsage_prompt, input_human_message_prompt]
+        )
+        self.input_chain = LLMChain(llm=chat, prompt=input_chat_prompt)
+
+        instruct_human_message_prompt = HumanMessagePromptTemplate.from_template("##Instruction:\n\n{instruction}\n\n##Output:\n\n")
+        instruct_chat_prompt = ChatPromptTemplate.from_messages(
+            [system_messsage_prompt, instruct_human_message_prompt]
+        )
+        self.instruct_chain = LLMChain(llm=chat, prompt=instruct_chat_prompt)
+    
+    async def __call__(self, instruction: str, input: str) -> str:
+        if input.strip() == '':
+            return await self.instruct_chain.arun({'text': '', 'instruction': instruction})
+        else:
+            return await self.input_chain.arun({'text': '', 'instruction': instruction, 'input': input})
 
 
 if __name__ == '__main__':
