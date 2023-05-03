@@ -1,6 +1,8 @@
 # python
 from abc import ABC
+from typing import Callable
 import os
+from functools import partial
 # 비동기
 import asyncio
 from tqdm.asyncio import tqdm_asyncio
@@ -26,16 +28,16 @@ class Evaluate(ABC):
                 obj['instances'][idx]['output'] = asyncio.run(self.__call__(obj['instruction'], instance['input']))
         else:
             return asyncio.run(self.__call__(obj['instruction'], obj['input']))
-
-    async def arun(self, obj: dict) -> dict:
-        if 'instances' in obj.keys():
-            for idx, instance in enumerate(obj['instances']):
-                obj['instances'][idx]['output'] = await self.__call__(obj['instruction'], instance['input'])
-        else:
-            obj['answer'] = await self.__call__(obj['instruction'], obj['input'])
-        return obj
     
-    async def aeval_jsonl(self, in_filepath: str, out_filepath: str, max_concurrency=10, verbose=True, dev=False, increment=True):
+    async def aeval_jsonl(
+            self,
+            in_filepath: str,
+            out_filepath: str,
+            run_func: Callable[[dict], dict],
+            max_concurrency=10,
+            verbose=True,
+            dev=False,
+            increment=True):
         """이 함수는 입력 파일 경로와 출력 파일 경로를 받아서, 입력 파일에서 모든 객체들을 가져와 각 객체에 대해서 비동기 처리를 해주고, 결과를 출력 파일에 저장하는 함수입니다.
 
         Args:
@@ -46,9 +48,12 @@ class Evaluate(ABC):
             dev (bool, optional): 개발자 모드 여부. Defaults to False.
             increment (bool, optional): 증분 모드 여부. Defaults to True.
         """
+
+        run_func = partial(run_func, self)  # run_func self를 인자로 고정하여 새로운 함수(run_func)를 생성합니다. 
+
         async def run_task(sem, afp, obj):
             async with sem:  # semaphore lock을 사용하여 동시에 실행되는 coroutine의 개수를 제한합니다.
-                result = await self.arun(obj)  # __call__ 함수를 실행하여 결과를 반환합니다.
+                result = await run_func(obj)  # __call__ 함수를 실행하여 결과를 반환합니다.
                 await afp.write(json.dumps(result, ensure_ascii=False)+'\n')
 
         with jsonlines.open(in_filepath) as reader:

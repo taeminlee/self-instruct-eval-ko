@@ -1,12 +1,15 @@
 # python
 from abc import ABC, abstractmethod
 from typing import Callable
+import os
 # 비동기
 from functools import partial
 import asyncio
 from tqdm.asyncio import tqdm_asyncio
 # jsonl 파일 핸들링
 import jsonlines
+from aiofile import async_open
+import json
 # 유틸리티 함수
 from termcolor import colored
 import tqdm
@@ -43,6 +46,11 @@ class Translate(ABC):
     
     def translate(self, original_text):
         return asyncio.run(self.__call__(original_text))
+    
+    def append_id(self, idx, obj):
+        if 'id' not in obj.keys():
+            obj['id'] = idx
+        return obj
 
     def translate_jsonl(self, in_filepath: str, out_filepath: str, translate_func: Callable[[Callable[[str], str], dict], dict], verbose=True, dev=False):
         """
@@ -75,6 +83,7 @@ class Translate(ABC):
                   
                 # JSON 파일 안의 모든 객체에 대해 입력받은 번역 함수(translate_func)로 번역 작업을 수행하고, 새로운 JSON 파일에 쓰기
                 for idx, obj in enumerate(iterator):
+                    obj = self.append_id(idx, obj)
                     if dev:
                         print(colored(f"\nORIGINAL: {obj}", 'blue'))
                     t_obj = translate_func(asyncio.run(self.__call__), obj) # 입력으로 받은 번역 함수(translate_func)를 이용해 번역 작업 수행
@@ -85,7 +94,15 @@ class Translate(ABC):
                     writer.write(t_obj) # 새로운 JSON 파일에 변환된 객체 쓰기
     
 
-    async def atranslate_jsonl(self, in_filepath: str, out_filepath: str, translate_func: Callable[[Callable[[str], str], dict], dict], max_concurrency=10, verbose=True, dev=False):
+    async def atranslate_jsonl(
+            self,
+            in_filepath: str,
+            out_filepath: str,
+            translate_func: Callable[[Callable[[str], str], dict], dict],
+            max_concurrency=10,
+            verbose=True,
+            dev=False,
+            increment=True):
         """
         JSON 파일에서 데이터를 읽어 번역 함수(translate_func)로 변환한 후 새로운 JSON 파일로 저장하는 비동기 메서드입니다.
     
@@ -96,27 +113,36 @@ class Translate(ABC):
             max_concurrency (int): 동시에 실행될 태스크 수 (기본값: 10)
             verbose (bool): 진행 상황 메시지 출력 여부 (기본값: True)
             dev (bool): 개발자 모드 사용 여부 (기본값: False)
+            increment (bool, optional): 증분 모드 여부. Defaults to True.
     
         Returns:
             None
         """
 
-        translate_call = partial(translate_func, self.__call__)  # translate_func에 self.__call__ 함수를 인자로 고정하여 새로운 함수(translate_call)를 생성합니다. 
+        translate_call = partial(translate_func, self)  # translate_func에 self를 인자로 고정하여 새로운 함수(translate_call)를 생성합니다. 
 
-        async def run_task(sem, obj):
+        async def run_task(sem, afp, obj):
             async with sem:  # semaphore lock을 사용하여 동시에 실행되는 coroutine의 개수를 제한합니다.
                 result = await translate_call(obj)  # translate_call 함수를 실행하여 결과를 반환합니다.
-                return result
+                await afp.write(json.dumps(result, ensure_ascii=False)+'\n')
 
         with jsonlines.open(in_filepath) as reader:
-            data = [obj for obj in reader]  # 입력 파일에서 모든 객체들을 리스트에 저장합니다.
+            data = [self.append_id(idx, obj) for idx, obj in enumerate(reader)]  # 입력 파일에서 모든 객체들을 리스트에 저장합니다.
+        
+        if increment and os.path.exists(out_filepath):  # increment 가 True 이고 out_filepath 가 존재하는 경우
+            afp = await async_open(out_filepath, 'a')  # 파일을 추가 모드로 열기 (이어서 쓰기 가능)
+            with jsonlines.open(out_filepath) as reader:  # jsonlines 로 읽기
+                processed_ids = [obj['id'] for obj in reader]  # 이미 처리한 id 들을 processed_ids 리스트에 저장
+            data = [obj for obj in data if obj['id'] not in processed_ids]  # data 의 id 가 이미 processed_ids 리스트에 있는 경우 제외한 데이터만 data 리스트에 저장
+        else:
+            afp = await async_open(out_filepath, "w")
 
         if dev:
             data = data[:5]  # 개발자 모드인 경우, 데이터의 일부만 변환하도록 하여 테스트할 수 있습니다.
 
         semaphore = asyncio.Semaphore(max_concurrency)  # 최대 max_concurrency 수만큼의 태스크가 동시에 실행됩니다.
 
-        tasks = [asyncio.ensure_future(run_task(semaphore, obj)) for obj in data]  # 모든 객체들에 대해서 비동기 태스크를 생성합니다.
+        tasks = [asyncio.ensure_future(run_task(semaphore, afp, obj)) for obj in data]  # 모든 객체들에 대해서 비동기 태스크를 생성합니다.
 
         if verbose:
             print(colored(f"in_filepath: {in_filepath}", 'yellow'))  # 입력 파일 경로 출력
@@ -126,9 +152,7 @@ class Translate(ABC):
         else:
             results = await asyncio.gather(*tasks)  # 결과값들을 모아서 반환합니다.
 
-        with jsonlines.open(out_filepath, mode='w') as writer:
-            for t_obj in results:
-                writer.write(t_obj)  # 번역된 결과물들을 출력 파일에 저장합니다.
+        await afp.close() # 번역된 결과물들을 출력 파일에 저장합니다.
 
 
 # 현재 모듈의 이름이 __main__일 경우, 아래 코드를 실행합니다.
@@ -146,10 +170,10 @@ if __name__ == '__main__':
     # GPT-4 API를 사용하여 새로운 텍스트를 생성하고, 이를 출력합니다.
     print(f'GPT-4: {GPT4().translate(text)}')
 
-    async def translate_func(translate, obj):
+    async def translate_func(translator, obj):
         # 'instruction' 필드와 'instances' 배열을 각각 번역 함수로 번역하고, 그 결과를 다시 대입합니다.
-        obj['instruction'] = await translate(obj['instruction'])
-        obj['instances'] = [{'input': await translate(instance['input']), 'output': instance['output']} for instance in obj['instances']]
+        obj['instruction'] = await translator(obj['instruction'])
+        obj['instances'] = [{'input': await translator(instance['input']), 'output': instance['output']} for instance in obj['instances']]
         return obj
     
     # GPT4 API를 사용하여 'user_oriented_instructions.jsonl' 파일을 번역하고, 'user_oriented_instructions_ko.jsonl' 파일에 저장합니다.
